@@ -6,7 +6,7 @@ const money = n => n == null ? '—' : '$' + (n >= 1e9 ? (n / 1e9).toFixed(2) + 
 const dollars = n => '$' + Math.round(n).toLocaleString();
 const pct = n => n == null ? '—' : (n > 0 ? '+' : '') + n.toFixed(2) + '%';
 const multiple = n => n.toFixed(4) + '×';
-const defaults = {status:'early', sort:'rank', direction:'asc', category:'', chain:'', tvl:'', growth:'', search:'', slug:'', weight:'0.5', floor:'0.75'};
+const defaults = {status:'early', sort:'rank', direction:'asc', watchlist:'', category:'', chain:'', tvl:'', growth:'', search:'', slug:'', weight:'0.5', floor:'0.75'};
 const allowedSorts = ['rank','name','tvl_usd','change_7d','implied_value_usd'];
 let state = {...defaults};
 let visible = [];
@@ -29,11 +29,12 @@ function readURL() {
   if (!['asc','desc'].includes(state.direction)) state.direction = 'asc';
   if (!['','small','mid','large'].includes(state.tvl)) state.tvl = '';
   if (!['','up','down','missing'].includes(state.growth)) state.growth = '';
+  if (!['','only'].includes(state.watchlist)) state.watchlist = '';
   for (const [key, min, max] of [['weight',0,1],['floor',0.5,1]]) {
     const value = Number(state[key]);
     state[key] = Number.isFinite(value) ? String(Math.min(max, Math.max(min, value))) : defaults[key];
   }
-  for (const key of ['category','chain','tvl','growth','search']) {
+  for (const key of ['watchlist','category','chain','tvl','growth','search']) {
     $('#' + key).value = state[key];
     state[key] = $('#' + key).value;
   }
@@ -51,7 +52,8 @@ function filtered() {
     const match = !q || [r.name,r.slug,r.category,...r.chains].join(' ').toLowerCase().includes(q);
     const tvl = !state.tvl || (state.tvl === 'small' ? r.tvl_usd < 5e7 : state.tvl === 'mid' ? r.tvl_usd >= 5e7 && r.tvl_usd < 1e9 : r.tvl_usd >= 1e9);
     const growth = !state.growth || (state.growth === 'missing' ? r.change_7d == null : r.change_7d != null && (state.growth === 'up' ? r.change_7d > 0 : r.change_7d < 0));
-    return match && tvl && growth && (!state.category || (r.category || 'Unclassified') === state.category) && (!state.chain || r.chains.includes(state.chain));
+    const watchMatch = !state.watchlist || r.watchlist === true;
+    return match && watchMatch && tvl && growth && (!state.category || (r.category || 'Unclassified') === state.category) && (!state.chain || r.chains.includes(state.chain));
   }).sort((a,b) => {
     const av = a[state.sort], bv = b[state.sort];
     if (av == null && bv == null) return a.name.localeCompare(b.name);
@@ -99,7 +101,7 @@ function render() {
   $('#shown').textContent = `${visible.length} RECORDS · ${state.status === 'early' ? 'MODEL VIEW' : 'MARKET CAP VIEW'}`;
   $('#empty').hidden = visible.length > 0;
   document.querySelectorAll('[data-sort]').forEach(b => { const active = b.dataset.sort === state.sort; b.classList.toggle('sorting',active); b.setAttribute('aria-label', b.textContent.replace(/ [↑↓]$/, '') + (active ? ', sorted ' + state.direction : ', sort')); b.textContent = b.textContent.replace(/ [↑↓]$/, '') + (active ? (state.direction === 'asc' ? ' ↑' : ' ↓') : ''); });
-  $('#rows').innerHTML = visible.map(r => `<tr class="data ${r.slug === state.slug ? 'selected' : ''}" data-slug="${escapeText(r.slug)}" aria-selected="${r.slug === state.slug}"><td class="rank">${r.rank ? String(r.rank).padStart(3,'0') : '—'}</td><td class="name">${escapeText(r.name)}<small>${escapeText(r.category || 'Unclassified')} · ${escapeText(r.chains[0] || 'No chain')}</small></td><td>${money(r.tvl_usd)}</td><td class="${r.change_7d > 0 ? 'positive' : r.change_7d < 0 ? 'negative' : ''}">${pct(r.change_7d)}</td><td class="value">${money(r.implied_value_usd)}</td><td>${r.model ? `<span class="confidence ${r.confidence.toLowerCase()}">${escapeText(r.confidence)}</span><small class="peer-count">${r.model.peer_count} peers</small>` : '<span class="peer-count">Market cap</span>'}</td><td class="arrow">↗</td></tr>`).join('');
+  $('#rows').innerHTML = visible.map(r => `<tr class="data ${r.slug === state.slug ? 'selected' : ''}" data-slug="${escapeText(r.slug)}" aria-selected="${r.slug === state.slug}"><td class="rank">${r.rank ? String(r.rank).padStart(3,'0') : '—'}</td><td class="name">${escapeText(r.name)}${r.watchlist ? ' <span class="confidence higher">WATCH</span>' : ''}<small>${escapeText(r.category || 'Unclassified')} · ${escapeText(r.chains[0] || 'No chain')}</small></td><td>${money(r.tvl_usd)}</td><td class="${r.change_7d > 0 ? 'positive' : r.change_7d < 0 ? 'negative' : ''}">${pct(r.change_7d)}</td><td class="value">${money(r.implied_value_usd)}</td><td>${r.model ? `<span class="confidence ${r.confidence.toLowerCase()}">${escapeText(r.confidence)}</span><small class="peer-count">${r.model.peer_count} peers</small>` : '<span class="peer-count">Market cap</span>'}</td><td class="arrow">↗</td></tr>`).join('');
   distribution(visible);
   detail(visible.find(r => r.slug === state.slug));
   writeURL();
@@ -114,8 +116,8 @@ function selectRelative(offset) {
 $('#rows').addEventListener('click', e => { const row = e.target.closest('tr[data-slug]'); if (row) { state.slug = row.dataset.slug; writeURL(true); render(); } });
 document.querySelectorAll('[data-status]').forEach(b => b.addEventListener('click', () => { state.status = b.dataset.status; state.sort = state.status === 'early' ? 'rank' : 'implied_value_usd'; state.direction = state.status === 'early' ? 'asc' : 'desc'; state.slug = ''; writeURL(true); render(); }));
 document.querySelectorAll('[data-sort]').forEach(b => b.addEventListener('click', () => { const key = b.dataset.sort; state.direction = state.sort === key ? (state.direction === 'asc' ? 'desc' : 'asc') : (key === 'name' || key === 'rank' ? 'asc' : 'desc'); state.sort = key; writeURL(true); render(); }));
-for (const key of ['category','chain','tvl','growth','search']) $('#' + key).addEventListener('input', e => { state[key] = e.target.value; state.slug = ''; writeURL(key !== 'search'); render(); });
-$('#reset').addEventListener('click', () => { for (const key of ['category','chain','tvl','growth','search']) { state[key] = ''; $('#' + key).value = ''; } state.slug = ''; writeURL(true); render(); });
+for (const key of ['watchlist','category','chain','tvl','growth','search']) $('#' + key).addEventListener('input', e => { state[key] = e.target.value; state.slug = ''; writeURL(key !== 'search'); render(); });
+$('#reset').addEventListener('click', () => { for (const key of ['watchlist','category','chain','tvl','growth','search']) { state[key] = ''; $('#' + key).value = ''; } state.slug = ''; writeURL(true); render(); });
 $('#detail').addEventListener('input', e => { if (e.target.id === 'weight' || e.target.id === 'floor') { state[e.target.id] = e.target.value; writeURL(); const row = visible.find(r => r.slug === state.slug); if (row?.model) updateScenario(row); } });
 $('#detail').addEventListener('click', e => { if (e.target.id === 'reset-model') { state.weight = defaults.weight; state.floor = defaults.floor; writeURL(true); detail(visible.find(r => r.slug === state.slug)); } });
 document.addEventListener('keydown', e => {
