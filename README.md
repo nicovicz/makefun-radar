@@ -1,10 +1,10 @@
-# makefun-hive
+# makefun-radar
 
 [![make.fun · token-radar-01](https://make.fun/badge/token-radar-01.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
-[![rank](https://make.fun/badge/token-radar-01/0xzhojy/makefun-hive/rank.svg)](https://make.fun/bounty/token-radar-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
-[![reward](https://make.fun/badge/token-radar-01/0xzhojy/makefun-hive/reward.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
+[![rank](https://make.fun/badge/token-radar-01/nicovicz/makefun-radar/rank.svg)](https://make.fun/bounty/token-radar-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
+[![reward](https://make.fun/badge/token-radar-01/nicovicz/makefun-radar/reward.svg)](https://make.fun/bounty/token-radar-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
 
-A token launch radar: it reads a sealed DefiLlama snapshot, scores every protocol that records no token by an implied value derived from its own figures, and hands in a board, a dashboard and a dossier.
+A token launch radar: it reads a sealed DefiLlama snapshot, scores every protocol that records no token by a shrinkage-stabilized implied value derived from its own figures, and hands in a board, a filterable watchlist dashboard, and a dossier.
 
 ## Run it
 
